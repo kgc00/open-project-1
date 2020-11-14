@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Menus;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class MenuInput : MonoBehaviour
 {
@@ -10,19 +12,20 @@ public class MenuInput : MonoBehaviour
 	private GameObject _mouseSelection;
 	[SerializeField] private InputReader _inputReader;
 	public bool IsMouseActive { get; private set; }
+
 	private void OnEnable()
 	{
-		_inputReader.MouseMoveMenuEvent += HandleMoveCursor;
-		_inputReader.MoveSelectionMenuEvent += HandleMoveSelection;
+		_inputReader.Menu.MouseMoveMenuEvent += HandleMoveCursor;
+		_inputReader.Menu.MoveSelectionMenuEvent += HandleMoveSelection;
 	}
 
 	private void OnDisable()
 	{
-		_inputReader.MouseMoveMenuEvent -= HandleMoveCursor;
-		_inputReader.MoveSelectionMenuEvent -= HandleMoveSelection;
+		_inputReader.Menu.MouseMoveMenuEvent -= HandleMoveCursor;
+		_inputReader.Menu.MoveSelectionMenuEvent -= HandleMoveSelection;
 	}
 
-	private void HandleMoveSelection(Vector2 dir)
+	private void HandleMoveSelection()
 	{
 		DisableCursor();
 
@@ -31,13 +34,25 @@ public class MenuInput : MonoBehaviour
 
 		if (exitingMouseMode)
 		{
-			ExecuteEvents.Execute(EventSystem.current.currentSelectedGameObject, new PointerEventData(EventSystem.current),
+			_mouseSelection = _currentSelection;
+			ExecuteEvents.Execute(EventSystem.current.currentSelectedGameObject,
+				new PointerEventData(EventSystem.current),
 				ExecuteEvents.pointerExitHandler);
 			EventSystem.current.SetSelectedGameObject(_currentSelection);
+		}
+		else
+		{
+			_mouseSelection = null;
 		}
 
 		if (EventSystem.current.currentSelectedGameObject == null)
 			EventSystem.current.SetSelectedGameObject(_mouseSelection);
+
+		if (EventSystem.current.currentSelectedGameObject == null)
+		{
+			_mouseSelection = _currentSelection;
+			EventSystem.current.SetSelectedGameObject(_currentSelection);
+		}
 	}
 
 	private void DisableCursor()
@@ -48,6 +63,13 @@ public class MenuInput : MonoBehaviour
 
 	private void HandleMoveCursor()
 	{
+		if (_currentSelection != null && _mouseSelection != null &&
+		    EventSystem.current.currentSelectedGameObject != null)
+		{
+			if (_mouseSelection == _currentSelection)
+				EventSystem.current.SetSelectedGameObject(_mouseSelection);
+		}
+
 		EnableCursor();
 	}
 
@@ -67,6 +89,7 @@ public class MenuInput : MonoBehaviour
 	{
 		StoreSelection(uiElement);
 	}
+
 	public void HandleMouseExit(GameObject uiElement)
 	{
 		if (EventSystem.current.currentSelectedGameObject == uiElement)
